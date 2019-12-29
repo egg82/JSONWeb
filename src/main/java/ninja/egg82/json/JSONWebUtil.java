@@ -28,7 +28,6 @@ public class JSONWebUtil {
             headers = new HashMap<>();
         }
         headers.put("Accept", "application/json");
-        headers.put("Connection", "close");
 
         return JSONUtil.parseArray(getString(url, method, timeout, userAgent, headers));
     }
@@ -46,7 +45,6 @@ public class JSONWebUtil {
             headers = new HashMap<>();
         }
         headers.put("Accept", "application/json");
-        headers.put("Connection", "close");
 
         return JSONUtil.parseObject(getString(url, method, timeout, userAgent, headers));
     }
@@ -60,6 +58,11 @@ public class JSONWebUtil {
     public static String getString(URL url, String method, int timeout, String userAgent) throws IOException { return getString(url, method, timeout, userAgent, null); }
 
     public static String getString(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
+        if (headers == null) {
+            headers = new HashMap<>();
+        }
+        headers.put("Connection", "close");
+
         try (InputStream in = getInputStream(url, method, timeout, userAgent, headers); InputStreamReader reader = new InputStreamReader(in); BufferedReader buffer = new BufferedReader(reader)) {
             StringBuilder builder = new StringBuilder();
             String line;
@@ -120,7 +123,7 @@ public class JSONWebUtil {
         return conn;
     }
 
-    private static InputStream getInputStream(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
+    public static InputStream getInputStream(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
         HttpURLConnection conn = getConnection(url, method, timeout, userAgent, headers);
         int status = conn.getResponseCode();
 
