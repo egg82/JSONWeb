@@ -6,84 +6,129 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
 import java.util.Map;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.ParseException;
 
 public class JSONWebUtil {
-    private JSONWebUtil() {}
+    private JSONWebUtil() { }
 
-    public static JSONArray getJsonArray(String url, String userAgent) throws IOException, ParseException { return getJsonArray(url, userAgent, "GET", null); }
+    public static JSONArray getJSONArray(URL url) throws IOException, ParseException, ClassCastException { return getJSONArray(url, null, 5000, null, null); }
 
-    public static JSONArray getJsonArray(String url, String userAgent, String method) throws IOException, ParseException { return getJsonArray(url, userAgent, method, null); }
+    public static JSONArray getJSONArray(URL url, String method) throws IOException, ParseException, ClassCastException { return getJSONArray(url, method, 5000, null, null); }
 
-    public static JSONArray getJsonArray(String url, String userAgent, Map<String, String> headers) throws IOException, ParseException { return getJsonArray(url, userAgent, "GET", headers); }
+    public static JSONArray getJSONArray(URL url, String method, int timeout) throws IOException, ParseException, ClassCastException { return getJSONArray(url, method, timeout, null, null); }
 
-    public static JSONArray getJsonArray(String url, String userAgent, String method, Map<String, String> headers) throws IOException, ParseException {
-        String retVal = getString(url, userAgent, method, headers);
-        if (retVal == null) {
-            return null;
+    public static JSONArray getJSONArray(URL url, String method, int timeout, String userAgent) throws IOException, ParseException, ClassCastException { return getJSONArray(url, method, timeout, userAgent, null); }
+
+    public static JSONArray getJSONArray(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException, ParseException, ClassCastException {
+        if (headers == null) {
+            headers = new HashMap<>();
         }
-        return JSONUtil.parseArray(retVal);
+        headers.put("Accept", "application/json");
+        headers.put("Connection", "close");
+
+        return JSONUtil.parseArray(getString(url, method, timeout, userAgent, headers));
     }
 
-    public static JSONObject getJsonObject(String url, String userAgent) throws IOException, ParseException { return getJsonObject(url, userAgent, "GET", null); }
+    public static JSONObject getJSONObject(URL url) throws IOException, ParseException, ClassCastException { return getJSONObject(url, null, 5000, null, null); }
 
-    public static JSONObject getJsonObject(String url, String userAgent, String method) throws IOException, ParseException { return getJsonObject(url, userAgent, method, null); }
+    public static JSONObject getJSONObject(URL url, String method) throws IOException, ParseException, ClassCastException { return getJSONObject(url, method, 5000, null, null); }
 
-    public static JSONObject getJsonObject(String url, String userAgent, Map<String, String> headers) throws IOException, ParseException { return getJsonObject(url, userAgent, "GET", headers); }
+    public static JSONObject getJSONObject(URL url, String method, int timeout) throws IOException, ParseException, ClassCastException { return getJSONObject(url, method, timeout, null, null); }
 
-    public static JSONObject getJsonObject(String url, String userAgent, String method, Map<String, String> headers) throws IOException, ParseException {
-        String retVal = getString(url, userAgent, method, headers);
-        if (retVal == null) {
-            return null;
+    public static JSONObject getJSONObject(URL url, String method, int timeout, String userAgent) throws IOException, ParseException, ClassCastException { return getJSONObject(url, method, timeout, userAgent, null); }
+
+    public static JSONObject getJSONObject(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException, ParseException, ClassCastException {
+        if (headers == null) {
+            headers = new HashMap<>();
         }
-        return JSONUtil.parseObject(retVal);
+        headers.put("Accept", "application/json");
+        headers.put("Connection", "close");
+
+        return JSONUtil.parseObject(getString(url, method, timeout, userAgent, headers));
     }
 
-    public static String getString(String url, String userAgent, String method, Map<String, String> headers) throws IOException {
+    public static String getString(URL url) throws IOException { return getString(url, null, 5000, null, null); }
+
+    public static String getString(URL url, String method) throws IOException { return getString(url, method, 5000, null, null); }
+
+    public static String getString(URL url, String method, int timeout) throws IOException { return getString(url, method, timeout, null, null); }
+
+    public static String getString(URL url, String method, int timeout, String userAgent) throws IOException { return getString(url, method, timeout, userAgent, null); }
+
+    public static String getString(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
+        try (InputStream in = getInputStream(url, method, timeout, userAgent, headers); InputStreamReader reader = new InputStreamReader(in); BufferedReader buffer = new BufferedReader(reader)) {
+            StringBuilder builder = new StringBuilder();
+            String line;
+            while ((line = buffer.readLine()) != null) {
+                builder.append(line);
+            }
+            return builder.toString();
+        }
+    }
+
+    public static HttpURLConnection getConnection(URL url) throws IOException { return getConnection(url, null, 5000, null, null); }
+
+    public static HttpURLConnection getConnection(URL url, String method) throws IOException { return getConnection(url, method, 5000, null, null); }
+
+    public static HttpURLConnection getConnection(URL url, String method, int timeout) throws IOException { return getConnection(url, method, timeout, null, null); }
+
+    public static HttpURLConnection getConnection(URL url, String method, int timeout, String userAgent) throws IOException { return getConnection(url, method, timeout, userAgent, null); }
+
+    public static HttpURLConnection getConnection(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
         if (url == null) {
             throw new IllegalArgumentException("url cannot be null.");
         }
-        if (userAgent == null) {
-            throw new IllegalArgumentException("userAgent cannot be null.");
-        }
-        if (method == null) {
-            throw new IllegalArgumentException("method cannot be null.");
-        }
 
-        HttpURLConnection conn = (HttpURLConnection) new URL(url).openConnection();
+        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        conn.setInstanceFollowRedirects(true);
+        conn.setConnectTimeout(timeout);
+        conn.setReadTimeout(timeout);
 
-        conn.setDoOutput(false);
-        conn.setDoInput(true);
-        conn.setRequestProperty("Accept", "application/json");
-        conn.setRequestProperty("Connection", "close");
-        conn.setRequestProperty("User-Agent", userAgent);
+        if (method != null) {
+            conn.setRequestMethod(method);
+        }
+        if (userAgent != null) {
+            conn.setRequestProperty("User-Agent", userAgent);
+        }
         if (headers != null) {
             for (Map.Entry<String, String> kvp : headers.entrySet()) {
                 conn.setRequestProperty(kvp.getKey(), kvp.getValue());
             }
         }
 
-        conn.setRequestMethod(method);
+        int status;
+        boolean redirect;
 
-        int code = conn.getResponseCode();
+        do {
+            status = conn.getResponseCode();
+            redirect = status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_MOVED_PERM || status == HttpURLConnection.HTTP_SEE_OTHER;
 
-        try (InputStream in = (code == 200) ? conn.getInputStream() : conn.getErrorStream();
-             InputStreamReader reader = new InputStreamReader(in);
-             BufferedReader buffer = new BufferedReader(reader);) {
-            StringBuilder builder = new StringBuilder();
-            String line;
-            while ((line = buffer.readLine()) != null) {
-                builder.append(line);
+            if (redirect) {
+                String newUrl = conn.getHeaderField("Location");
+                String cookies = conn.getHeaderField("Set-Cookie");
+
+                conn = (HttpURLConnection) new URL(newUrl).openConnection();
+                conn.setRequestProperty("Cookie", cookies);
+                conn.addRequestProperty("Accept-Language", "en-US,en;q=0.8");
             }
+        } while (redirect);
 
-            if (code == 200) {
-                return builder.toString();
-            }
+        return conn;
+    }
+
+    private static InputStream getInputStream(URL url, String method, int timeout, String userAgent, Map<String, String> headers) throws IOException {
+        HttpURLConnection conn = getConnection(url, method, timeout, userAgent, headers);
+        int status = conn.getResponseCode();
+
+        if (status >= 400 && status < 600) {
+            // 400-500 errors
+            throw new IOException("Server returned status code " + status);
         }
 
-        return null;
+        return conn.getInputStream();
     }
 }

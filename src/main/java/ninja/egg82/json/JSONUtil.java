@@ -7,7 +7,7 @@ import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 
 public class JSONUtil {
-    private JSONUtil() {}
+    private JSONUtil() { }
 
     private static ConcurrentLinkedDeque<JSONParser> pool = new ConcurrentLinkedDeque<>(); // JSONParser is not stateless and thus requires a pool in multi-threaded environments
 
