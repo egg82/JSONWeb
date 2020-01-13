@@ -102,7 +102,6 @@ public class JSONWebUtil {
 
         int status;
         boolean redirect;
-
         do {
             status = conn.getResponseCode();
             redirect = status == HttpURLConnection.HTTP_MOVED_TEMP || status == HttpURLConnection.HTTP_MOVED_PERM || status == HttpURLConnection.HTTP_SEE_OTHER;
@@ -138,8 +137,8 @@ public class JSONWebUtil {
         if (cookies != null && !cookies.isEmpty()) {
             conn.setRequestProperty("Cookie", cookies);
         }
-        if (postData != null && !postData.isEmpty()) {
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+        if (postData != null) {
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded;charset=utf-8");
             StringBuilder data = new StringBuilder();
             for (Map.Entry<String, String> kvp : postData.entrySet()) {
                 data.append(URLEncoder.encode(kvp.getKey(), StandardCharsets.UTF_8.name()));
@@ -147,7 +146,9 @@ public class JSONWebUtil {
                 data.append(URLEncoder.encode(kvp.getValue(), StandardCharsets.UTF_8.name()));
                 data.append('&');
             }
-            data.deleteCharAt(data.length() - 1);
+            if (data.length() > 0) {
+                data.deleteCharAt(data.length() - 1);
+            }
             byte[] dataBytes = data.toString().getBytes(StandardCharsets.UTF_8);
             conn.setRequestProperty("Content-Length", String.valueOf(dataBytes.length));
             conn.setDoOutput(true);
