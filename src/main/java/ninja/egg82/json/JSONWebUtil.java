@@ -98,38 +98,7 @@ public class JSONWebUtil {
         }
 
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
-        conn.setInstanceFollowRedirects(true);
-        conn.setConnectTimeout(timeout);
-        conn.setReadTimeout(timeout);
-
-        if (method != null) {
-            conn.setRequestMethod(method);
-        }
-        if (userAgent != null) {
-            conn.setRequestProperty("User-Agent", userAgent);
-        }
-        if (headers != null) {
-            for (Map.Entry<String, String> kvp : headers.entrySet()) {
-                conn.setRequestProperty(kvp.getKey(), kvp.getValue());
-            }
-        }
-        if (postData != null) {
-            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
-            StringBuilder data = new StringBuilder();
-            for (Map.Entry<String, String> kvp : postData.entrySet()) {
-                data.append(URLEncoder.encode(kvp.getKey(), StandardCharsets.UTF_8.name()));
-                data.append('=');
-                data.append(URLEncoder.encode(kvp.getValue(), StandardCharsets.UTF_8.name()));
-                data.append('&');
-            }
-            if (data.length() > 0) {
-                data.deleteCharAt(data.length() - 1);
-            }
-            byte[] dataBytes = data.toString().getBytes(StandardCharsets.UTF_8);
-            conn.setRequestProperty("Content-Length", String.valueOf(dataBytes.length));
-            conn.setDoOutput(true);
-            conn.getOutputStream().write(dataBytes);
-        }
+        setConnectionProperties(conn, method, timeout, userAgent, headers, postData, null);
 
         int status;
         boolean redirect;
@@ -142,12 +111,48 @@ public class JSONWebUtil {
                 String newUrl = conn.getHeaderField("Location");
                 String cookies = conn.getHeaderField("Set-Cookie");
 
-                conn = getConnection(new URL(newUrl), method, timeout, userAgent, headers, postData);
-                conn.setRequestProperty("Cookie", cookies);
+                conn = (HttpURLConnection) new URL(newUrl).openConnection();
+                setConnectionProperties(conn, method, timeout, userAgent, headers, postData, cookies);
             }
         } while (redirect);
 
         return conn;
+    }
+
+    private static void setConnectionProperties(HttpURLConnection conn, String method, int timeout, String userAgent, Map<String, String> headers, Map<String, String> postData, String cookies) throws IOException {
+        conn.setInstanceFollowRedirects(true);
+        conn.setConnectTimeout(timeout);
+        conn.setReadTimeout(timeout);
+
+        if (method != null && !method.isEmpty()) {
+            conn.setRequestMethod(method);
+        }
+        if (userAgent != null && !userAgent.isEmpty()) {
+            conn.setRequestProperty("User-Agent", userAgent);
+        }
+        if (headers != null && !headers.isEmpty()) {
+            for (Map.Entry<String, String> kvp : headers.entrySet()) {
+                conn.setRequestProperty(kvp.getKey(), kvp.getValue());
+            }
+        }
+        if (cookies != null && !cookies.isEmpty()) {
+            conn.setRequestProperty("Cookie", cookies);
+        }
+        if (postData != null && !postData.isEmpty()) {
+            conn.setRequestProperty("Content-Type", "application/x-www-form-urlencoded; charset=utf-8");
+            StringBuilder data = new StringBuilder();
+            for (Map.Entry<String, String> kvp : postData.entrySet()) {
+                data.append(URLEncoder.encode(kvp.getKey(), StandardCharsets.UTF_8.name()));
+                data.append('=');
+                data.append(URLEncoder.encode(kvp.getValue(), StandardCharsets.UTF_8.name()));
+                data.append('&');
+            }
+            data.deleteCharAt(data.length() - 1);
+            byte[] dataBytes = data.toString().getBytes(StandardCharsets.UTF_8);
+            conn.setRequestProperty("Content-Length", String.valueOf(dataBytes.length));
+            conn.setDoOutput(true);
+            conn.getOutputStream().write(dataBytes);
+        }
     }
 
     public static InputStream getInputStream(URL url, String method, int timeout, String userAgent, Map<String, String> headers, Map<String, String> postData) throws IOException {
