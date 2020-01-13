@@ -1,9 +1,6 @@
 package ninja.egg82.json;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -152,7 +149,9 @@ public class JSONWebUtil {
             byte[] dataBytes = data.toString().getBytes(StandardCharsets.UTF_8);
             conn.setRequestProperty("Content-Length", String.valueOf(dataBytes.length));
             conn.setDoOutput(true);
-            conn.getOutputStream().write(dataBytes);
+            try (OutputStream out = conn.getOutputStream()) {
+                out.write(dataBytes);
+            }
         }
     }
 
